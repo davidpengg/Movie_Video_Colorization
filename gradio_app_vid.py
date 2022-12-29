@@ -1,4 +1,4 @@
-from utils import inference_model
+from utils import inference_model_vid
 
 import gradio as gr
 import torch
@@ -18,15 +18,16 @@ with torch.no_grad():
     assert model.device.type == "cpu"
     model.eval()
 
-def inference(img):
-    return inference_model(model, img)
+def inference(vid):
+
+    return inference_model_vid(model, vid)
 
 demo = gr.Interface(
     inference, 
-    inputs=gr.components.Image(type="pil"), 
-    outputs=gr.components.Image(type="pil"),
-    title="DCGANs Colorizer",
-    description="Demo of Colorization Model",
+    inputs=gr.Video(), 
+    outputs=gr.Video(),
+    title="DCGANs Video Colorizer",
+    description="Demo of Video Colorization Model",
     allow_flagging='never',
 )
 

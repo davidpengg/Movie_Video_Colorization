@@ -1,2 +1,4 @@
 __pycache__/
 modelbatchv2.pth
+tmp_files/
+.DS_Store
