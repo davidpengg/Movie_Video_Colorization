@@ -179,3 +179,11 @@ class MainModel(nn.Module):
         self.opt_G.zero_grad()
         self.backward_G()
         self.opt_G.step()
+
+# with torch.no_grad():
+#     model = MainModel()
+#     set_trace()
+#     # model = torch.load("modelbatchv2.pth", map_location=device)
+#     model.load_state_dict(torch.load("modelbatchv2.pth", map_location=torch.device('cpu')).state_dict())
+#     assert model.device.type == "cpu"
+#     model.eval()
