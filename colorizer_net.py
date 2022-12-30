@@ -47,7 +47,34 @@ class Unet(nn.Module): #this is actually the DCGans, I didn't want to change the
     
     def forward(self, x): 
       return self.model(x)
-
+# class Unet(nn.Module):
+#     def __init__(self, input_c=1, output_c=2, num_filters=128):
+#         super().__init__()
+#         self.model = nn.Sequential(
+#             nn.Conv2d(input_c,64,kernel_size=4,stride = 1,padding="same"),
+#             nn.LeakyReLU(0.2, True),
+#             nn.Conv2d(64,128,kernel_size=4,stride=2,padding=1),
+#             nn.LeakyReLU(0.2, True),
+#             nn.Conv2d(128,256,kernel_size=4,stride=2,padding=1),
+#             nn.LeakyReLU(0.2, True),
+#             nn.Conv2d(256,512,kernel_size=4,stride=2,padding=1),
+#             nn.LeakyReLU(0.2, True),
+#             nn.Conv2d(512,512,kernel_size=4,stride=2,padding=1),
+#             nn.LeakyReLU(0.2, True),
+#             nn.ConvTranspose2d(512,512,kernel_size=4,stride=2,padding=1),
+#             nn.ReLU(True),
+#             nn.ConvTranspose2d(512,256,kernel_size=4,stride=2,padding=1),
+#             nn.ReLU(True),
+#             nn.ConvTranspose2d(256,128,kernel_size=4,stride=2,padding=1),
+#             nn.ReLU(True),
+#             nn.ConvTranspose2d(128,64,kernel_size=4,stride=2,padding=1),
+#             nn.ReLU(True),
+#             nn.Conv2d(64,output_c, kernel_size=1,stride=1),
+#             nn.Tanh()
+#         )
+    
+#     def forward(self, x): 
+#         return self.model(x)
 class PatchDiscriminator(nn.Module):
     def __init__(self, input_c, num_filters=64, n_down=3): # num_filters=64
         super().__init__()

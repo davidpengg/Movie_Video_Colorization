@@ -2,3 +2,4 @@ __pycache__/
 *.pth
 tmp_files/
 .DS_Store
+Video_Image_Colorization/
