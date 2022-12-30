@@ -40,19 +40,20 @@ def get_L(img):
 
 def get_predictions(model, L):
     # model.L = L.to(model.device)
-    model.L = L.to(torch.device('cpu'))
-    model.forward()
+    with torch.no_grad():
+        model.L = L.to(torch.device('cpu'))
+        model.forward()
     fake_color = model.fake_color.detach()
     fake_imgs = lab_to_rgb(L, fake_color)
 
     return fake_imgs
 
-def inference_model_img(model, img):
+def colorize_img(model, img):
     L = get_L(img)
     L = L[None] # put in list
     fake_imgs = get_predictions(model, L)
     fake_img = fake_imgs[0] # get out of list
-    resized_fake_img = skimage.transform.resize(fake_img, img.size[::-1])
+    resized_fake_img = skimage.transform.resize(fake_img, img.size[::-1]) # reshape to original size
 
     return resized_fake_img
 
@@ -63,11 +64,9 @@ def inference_model_img(model, img):
     
 #     return resized_fake_imgs
 
-def inference_model_vid(model, path_input: str, fps=None):
+def colorize_vid(model, path_input: str, fps=None):
 
     input_video = VideoFileClip(path_input)
-    # nframes = input_video.reader.nframes
-    # print(f"There are {nframes} frames to process")
     
     if fps:
         used_fps = fps
@@ -79,41 +78,32 @@ def inference_model_vid(model, path_input: str, fps=None):
     
     frames = input_video.iter_frames(fps=used_fps)
     
-    colorized_frames = []
-    for frame in tqdm(frames, total=nframes):
-        color_frame = inference_model_img(model, Image.fromarray(frame))
-        colorized_frames.append(color_frame)
+    # create tmp path that is same as input path but with '_tmp.[suffix]'
+    base_path, suffix = os.path.splitext(path_input)
+    path_tmp = base_path + "_tmp" + suffix
 
-    height, width = colorized_frames[0].shape[:2]
-    size = (width, height)
-
-    # copy audio from input
-    input_audio = input_video.audio
-
-    # create tmp path that is same as input path but with '_out.mp4'
-    path_input_obj = Path(path_input)
-    path_tmp = str(path_input_obj.with_stem(path_input_obj.stem + "_tmp"))
-
+    # create video writer for output
+    size = input_video.size
     out = cv2.VideoWriter(path_tmp, cv2.VideoWriter_fourcc(*'mp4v'), used_fps, size)
     # out = cv2.VideoWriter(path_tmp, cv2.VideoWriter_fourcc(*'DIVX'), used_fps, size)
 
-    if colorized_frames[0].max() <= 1:
-        print("scaling up to 255 range...")
-        colorized_frames = [(colorized_frame*255).astype(np.uint8) for colorized_frame in colorized_frames]
+    for frame in tqdm(frames, total=nframes):
+        # get colorized frame
+        color_frame = colorize_img(model, Image.fromarray(frame))
+        # color_frame = frame
 
-    colorized_frames = [np.uint8(image) for image in colorized_frames]
-
-    for colorized_frame in tqdm(colorized_frames):
-        # use RGB, not RBG!
-        rgb_colorized_frame = cv2.cvtColor(colorized_frame, cv2.COLOR_BGR2RGB)
-        out.write(rgb_colorized_frame)
-        # out.write(colorized_frame)
+        if color_frame.max() <= 1:
+            color_frame = (color_frame*255).astype(np.uint8)
+        
+        color_frame = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
+        out.write(color_frame)
     out.release()
 
-    # create output path that is same as input path but with '_out.mp4'
-    path_output = str(path_input_obj.with_stem(path_input_obj.stem + "_out"))
+    # create output path that is same as input path but with '_out.[suffix]'
+    path_output = base_path + "_out" + suffix
 
     output_video = VideoFileClip(path_tmp)
+    input_audio = input_video.audio
     output_video = output_video.set_audio(input_audio)
     output_video.write_videofile(path_output, logger=None)
 
@@ -121,3 +111,5 @@ def inference_model_vid(model, path_input: str, fps=None):
 
     print("Done.")
     return path_output
+    
+    # old below
