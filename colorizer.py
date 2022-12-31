@@ -65,11 +65,11 @@ def colorize_img(model, img):
     
 #     return resized_fake_imgs
 
-def colorize_vid(model, path_input: str, fps=None):
+def colorize_vid(model, path_input, fps):
 
     input_video = VideoFileClip(path_input)
     
-    if fps:
+    if type(fps) == int:
         used_fps = fps
         nframes = np.round(fps * input_video.duration)
     else:
