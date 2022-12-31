@@ -40,6 +40,7 @@ def get_L(img):
 
 def get_predictions(model, L):
     # model.L = L.to(model.device)
+    model.eval()
     with torch.no_grad():
         model.L = L.to(torch.device('cpu'))
         model.forward()
@@ -74,7 +75,7 @@ def colorize_vid(model, path_input: str, fps=None):
     else:
         used_fps = input_video.fps
         nframes = input_video.reader.nframes
-    print(f"Colorizing output of FPS: {fps}, Nframes: {nframes}.")
+    print(f"Colorizing output with FPS: {fps}, nframes: {nframes}, resolution: {input_video.size}.")
     
     frames = input_video.iter_frames(fps=used_fps)
     
@@ -90,7 +91,6 @@ def colorize_vid(model, path_input: str, fps=None):
     for frame in tqdm(frames, total=nframes):
         # get colorized frame
         color_frame = colorize_img(model, Image.fromarray(frame))
-        # color_frame = frame
 
         if color_frame.max() <= 1:
             color_frame = (color_frame*255).astype(np.uint8)
@@ -111,5 +111,3 @@ def colorize_vid(model, path_input: str, fps=None):
 
     print("Done.")
     return path_output
-    
-    # old below
