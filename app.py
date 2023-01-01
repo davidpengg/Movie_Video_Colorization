@@ -25,7 +25,7 @@ model_choices = [
 
 loaded_models = {}
 for model_weights in model_choices:
-    model = torch.load(model_weights, map_location=torch.device('cpu'))
+    model = torch.load(f"{model_weights}.pth", map_location=torch.device('cpu'))
     model.eval()  # also done in colorizer
     loaded_models[model_weights] = model
 
@@ -121,7 +121,7 @@ with app:
                 inputs=[bw_video, model_dropdown, fps_dropdown],
                 outputs=[colorized_video],
                 fn=colorize_video,
-                cache_examples=True,
+                # cache_examples=True,
             )
 
     youtube_url_btn.click(
