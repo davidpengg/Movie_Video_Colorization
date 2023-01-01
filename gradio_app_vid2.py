@@ -38,7 +38,7 @@ def choose_fps(fps_dropdown_choice):
     global chosen_fps
     chosen_fps = fps_dropdown_choice
 
-def colorize_video(path_video, start, end):
+def colorize_video(path_video, start='', end=''):
     if not path_video:
         return
     return colorize_vid(loaded_models[chosen_model], path_video, chosen_fps, start, end)
@@ -63,24 +63,6 @@ with app:
         <p>
         """
     )
-    # gr.Markdown(
-    #     """
-    #     <p style='text-align: center'>
-    #     Perform video classification with <a href='https://huggingface.co/models?pipeline_tag=video-classification&library=transformers' target='_blank'>HuggingFace Transformers video models</a>.
-    #     <br> For zero-shot classification, you can use the <a href='https://huggingface.co/spaces/fcakyon/zero-shot-video-classification' target='_blank'>zero-shot classification demo</a>.
-    #     </p>
-    #     """
-    # )
-    # gr.Markdown(
-    #     """
-    #     <p style='text-align: center'>
-    #     Follow me for more! 
-    #     <br> <a href='https://twitter.com/fcakyon' target='_blank'>twitter</a> | <a href='https://github.com/fcakyon' target='_blank'>github</a> | <a href='https://www.linkedin.com/in/fcakyon/' target='_blank'>linkedin</a> | <a href='https://fcakyon.medium.com/' target='_blank'>medium</a>
-    #     </p>
-    #     """
-    # )
-
-    # v2
 
     gr.Markdown("### Step 1: Choose a YouTube video (or upload locally below)")
 
@@ -92,12 +74,14 @@ with app:
         with gr.Column():
             gr.Markdown("### Step 2: Adjust settings")
 
-            bw_video = gr.Video(label="Black and White Video")
+            bw_video = gr.Video(label="Black-and-White Video")
 
             with gr.Row():
                 start_time = gr.Text(label="Start Time (hh:mm:ss)", value='')
                 end_time = gr.Text(label="End Time (hh:mm:ss)", value='')
-        
+
+            gr.Markdown("Leave times blank to colorize the entire video.")
+
             model_dropdown = gr.Dropdown(
                 model_choices,
                 value=model_choices[0],
@@ -105,9 +89,20 @@ with app:
             )
 
             fps_dropdown = gr.Dropdown(
-                [2, 6, 12, 24, 30, "Same as original FPS"],
-                value=6, 
+                [3, 6, 12, 24, 30, "Same as original FPS"],
+                value=6,
                 label="FPS of Colorized Video"
+            )
+
+            gr.Markdown(
+                """
+                ### Colorization Notes
+                - Leave start, end times blank to colorize the entire video
+                - To lower colorization time, you can decrease FPS, resolution, or duration
+                - *modelv2* tends to color videos orange and sepia
+                - *modelv1* tends to color videos with a variety of colors
+                - *modelv2* and *modelv1* use the same architecture (modified DCGAN) but differ in results because of randomization in training
+                """
             )
 
         with gr.Column():
@@ -116,80 +111,14 @@ with app:
             colorized_video = gr.Video(label="Colorized Video")
 
             bw_video_btn = gr.Button(value="Colorize", variant="primary")
-    # v1
-    # with gr.Row():
-    #     with gr.Column():
-    #         youtube_url = gr.Textbox(label="YouTube Video URL")
-    #         youtube_url_btn = gr.Button(value="Download YouTube Video")
 
-    #     gr.Textbox(label="dummy", visible=False)
-
-    # with gr.Row():
-    #     with gr.Column():
-    #         bw_video = gr.Video(label="Black and White Video")
-
-    #     with gr.Column():
-    #         colorized_video = gr.Video(label="Colorized Video")
-
-    # with gr.Row():
-    #     with gr.Column():
-    #         with gr.Row():
-    #             start_time = gr.Text(label="Start (hh:mm:ss)", value=chosen_start)
-    #             end_time = gr.Text(label="End (hh:mm:ss)", value=chosen_end)
-            
-    #         bw_video_btn = gr.Button(value="Submit to Colorize!")
-
-    #         model_dropdown = gr.Dropdown(
-    #             model_choices,
-    #             value=model_choices[0],
-    #             label="Model"
-    #         )
-
-    #         fps_dropdown = gr.Dropdown(
-    #             [2, 6, 12, 24, 30, "Same as original FPS"],
-    #             value=6, 
-    #             label="FPS of Colorized Video"
-    #         )
-
-    #     gr.Textbox(label="dummy", visible=False)
-
-    # v0
-    # with gr.Row():
-    #     with gr.Column():
-    #         youtube_url = gr.Textbox(label="YouTube Video URL")
-    #         youtube_url_btn = gr.Button(value="Download YouTube Video")
-    #         bw_video = gr.Video(label="Black and White Video")
-    #         with gr.Row():
-    #             start_time = gr.Text(label="Start (hh:mm:ss)", value=chosen_start)
-    #             end_time = gr.Text(label="End (hh:mm:ss)", value=chosen_end)
-    #         bw_video_btn = gr.Button(value="Submit to Colorize!")
-        
-    #     with gr.Column():
-    #         gr.File(label="dummy", visible=False)
-    #         colorized_video = gr.Video(label="Colorized Video")
-    #         gr.File(label="dummy", visible=False)
-
-    # with gr.Row():
-    #     with gr.Column():
-    #         model_dropdown = gr.Dropdown(
-    #             model_choices,
-    #             value=model_choices[0],
-    #             label="Model"
-    #         )
-
-    #         fps_dropdown = gr.Dropdown(
-    #             [2, 6, 12, 24, 30, "Same as original FPS"],
-    #             value=6, 
-    #             label="FPS of Colorized Video"
-    #         )
-
-        # gr.Examples(
-        #     [["examples/" + example] for example in os.listdir("examples") if ".mp4" in example],
-        #     inputs=[online_video, ], #TODO update these
-        #     outputs=colorized_online_video
-        # )
-
-    # button and dropdown functions
+            gr.Examples(
+                [["examples/" + example] for example in os.listdir("examples") if ".mp4" in example],
+                inputs=[bw_video],
+                outputs=[colorized_video],
+                fn=colorize_video,
+                # cache_examples=True,
+            )
 
     model_dropdown.change(choose_model, inputs=model_dropdown)
 
