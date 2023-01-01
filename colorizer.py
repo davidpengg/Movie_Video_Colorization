@@ -58,38 +58,37 @@ def colorize_img(model, img):
 
     return resized_fake_img
 
-def valid_start_end(duration, start, end):
+def valid_start_end(duration, start_input, end_input):
+    start = start_input
+    end = end_input 
     if start == '':
         start = 0
     if end == '':
         end = duration
 
     try:
-        cvsecs(start)
-        cvsecs(end)
+        start = cvsecs(start)
+        end = cvsecs(end)
     except:
         # start, end aren't actual time values.
-        return False
+        raise Exception("Invalid start, end values")
 
     # make it minimal maximum length
-    if start:
-        start = max(0, cvsecs(start))
-    if end:
-        end = min(duration, cvsecs(end))
+    start = max(start, 0)
+    end = min(duration, end)
     
     # start must be less than end
     if start >= end:
-        return False
+        raise Exception("Start must be before end.")
 
-    return True
+    return start, end
 
-def colorize_vid(model, path_input, fps, start, end):
+def colorize_vid(model, path_input, fps, start_input, end_input):
 
     original_video = VideoFileClip(path_input)
 
-    #   check start, end are valid
-    if not valid_start_end(original_video.duration, start, end):
-        return
+    # validate start, end
+    start, end = valid_start_end(original_video.duration, start_input, end_input)
     
     input_video = original_video.subclip(start, end)
     
