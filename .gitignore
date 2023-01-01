@@ -2,8 +2,4 @@ __pycache__/
 tmp_files/
 .DS_Store
 Video_Image_Colorization/
-
-# for now
-examples/
-gradio_cached_examples/
-*.pth
+Movie_Video_Colorization/
