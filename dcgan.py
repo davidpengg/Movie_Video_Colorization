@@ -1,9 +1,10 @@
 import torch
 from torch import nn, optim
 
-from pdb import set_trace
+# this architecture is taken from https://github.com/moein-shariatnia/Deep-Learning/tree/main/Image%20Colorization%20Tutorial
 
-class Unet(nn.Module): #this is actually the DCGans, I didn't want to change the name of the model elsewhere in the code, so I kept it as UNET
+#this is actually the DCGans. in training, we had kept the class name the same as the original to avoid changing code^
+class Unet(nn.Module):
     def __init__(self, input_c=1, output_c=2, num_filters=128):
         super().__init__()
         self.model = nn.Sequential(
@@ -47,34 +48,6 @@ class Unet(nn.Module): #this is actually the DCGans, I didn't want to change the
     
     def forward(self, x): 
       return self.model(x)
-# class Unet(nn.Module):
-#     def __init__(self, input_c=1, output_c=2, num_filters=128):
-#         super().__init__()
-#         self.model = nn.Sequential(
-#             nn.Conv2d(input_c,64,kernel_size=4,stride = 1,padding="same"),
-#             nn.LeakyReLU(0.2, True),
-#             nn.Conv2d(64,128,kernel_size=4,stride=2,padding=1),
-#             nn.LeakyReLU(0.2, True),
-#             nn.Conv2d(128,256,kernel_size=4,stride=2,padding=1),
-#             nn.LeakyReLU(0.2, True),
-#             nn.Conv2d(256,512,kernel_size=4,stride=2,padding=1),
-#             nn.LeakyReLU(0.2, True),
-#             nn.Conv2d(512,512,kernel_size=4,stride=2,padding=1),
-#             nn.LeakyReLU(0.2, True),
-#             nn.ConvTranspose2d(512,512,kernel_size=4,stride=2,padding=1),
-#             nn.ReLU(True),
-#             nn.ConvTranspose2d(512,256,kernel_size=4,stride=2,padding=1),
-#             nn.ReLU(True),
-#             nn.ConvTranspose2d(256,128,kernel_size=4,stride=2,padding=1),
-#             nn.ReLU(True),
-#             nn.ConvTranspose2d(128,64,kernel_size=4,stride=2,padding=1),
-#             nn.ReLU(True),
-#             nn.Conv2d(64,output_c, kernel_size=1,stride=1),
-#             nn.Tanh()
-#         )
-    
-#     def forward(self, x): 
-#         return self.model(x)
 class PatchDiscriminator(nn.Module):
     def __init__(self, input_c, num_filters=64, n_down=3): # num_filters=64
         super().__init__()
@@ -181,6 +154,7 @@ class MainModel(nn.Module):
         real_preds = self.net_D(real_image)
         self.loss_D_real = self.GANcriterion(real_preds, True)
         self.loss_D = (self.loss_D_fake + self.loss_D_real) * 0.5
+        # offset discriminator training
         if epoch % 2 ==0:
           self.loss_D.backward()
     
