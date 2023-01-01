@@ -10,22 +10,14 @@ from dcgan import *
 
 # ================================
 
-def get_video(url) -> str:
-    try:
-        yt = YouTube(url)
-        # get streams by resolution increasing
-        streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')
-        if not streams:
-            return ''
-        print(streams)
-        return streams[0].download()
-    except Exception as e:
-        print(e)
-        return ''
+# TODO remove when putting on huggingface
+for file in os.listdir():
+    if file.endswith(".mp4"):
+        os.remove(file)
 
 model_choices = [
-    "modelbatch_epoch9.pth",
     "mymodel9.pth",
+    "modelbatch_epoch9.pth",
 ]
 
 loaded_models = {}
@@ -38,6 +30,10 @@ for model_weights in model_choices:
 chosen_model = model_choices[0]
 chosen_fps = 6
 
+# will be changed upon video being uploaded
+chosen_start = 0
+chosen_end = ''
+
 def choose_model(model_dropdown_choice):
     global chosen_model
     chosen_model = model_dropdown_choice
@@ -46,21 +42,17 @@ def choose_fps(fps_dropdown_choice):
     global chosen_fps
     chosen_fps = fps_dropdown_choice
 
-def colorize_local_video(path_video):
-    return colorize_vid(loaded_models[chosen_model], path_video, chosen_fps)
+def colorize_video(path_video, start, end):
+    return colorize_vid(loaded_models[chosen_model], path_video, chosen_fps, start, end)
 
-def colorize_online_video(youtube_url):
-    path_video = get_video(youtube_url)
-    if not path_video:
-        # YouTube video grabbing unsuccessful
-        return
-    path_colorized = colorize_local_video(path_video)
-    os.remove(path_video)
-    return path_colorized
+def download_youtube(url):
+    yt = YouTube(url)
+    streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')
+    return streams[0].download()
 
 app = gr.Blocks()
 with app:
-    gr.Markdown("# **<p align='center'>Video Colorizer</p>**")
+    # gr.Markdown("# **<p align='center'>Video Colorizer</p>**")
     # gr.Markdown(
     #     """
     #     <p style='text-align: center'>
@@ -78,34 +70,44 @@ with app:
     #     """
     # )
 
-    with gr.Row(): 
-        with gr.Tab(label="Local File"):
-            with gr.Row():
-                with gr.Column():
-                    local_video = gr.Video(label="Black and White Video")
-                    local_video_btn = gr.Button(value="Submit")
-     
-                colorized_local_video = gr.Video(label="Colorized Video")
-     
-                # gr.Interface(
-                #     colorize_local_video,
-                #     inputs=gr.Video(label="Black and White Video"),
-                #     outputs=gr.Video(label="Colorized Video"),
+    # with gr.Row(): 
+        # with gr.Tab(label="Local File"):
+        #     with gr.Row():
+        #         with gr.Column():
+        #             local_video = gr.Video(label="Black and White Video")
+        #             with gr.Row():
+        #                 local_start = gr.Text(label="Start (hh:mm:ss)")
+        #                 local_end = gr.Text(label="End (hh:mm:ss)")
+        #             local_video_btn = gr.Button(value="Submit")
 
-                # )
-        with gr.Tab(label="Youtube"):
-            with gr.Row():
-                with gr.Column():
-                    online_video = gr.Textbox(label="YouTube Video URL")
-                    online_video_btn = gr.Button(value="Submit")
+        #         colorized_local_video = gr.Video(label="Colorized Video")
+
+        # with gr.Tab(label="YouTube"):
+        #     with gr.Row():
+        #         with gr.Column():
+        #             youtube_url = gr.Textbox(label="YouTube Video URL")
+        #             youtube_url_btn = gr.Button(value="Download YouTube Video")
+        #             online_video = gr.Video(label="Black and White Video")
+        #             with gr.Row():
+        #                 online_start = gr.Text(label="Start (hh:mm:ss)")
+        #                 online_end = gr.Text(label="End (hh:mm:ss)")
+        #             online_video_btn = gr.Button(value="Submit to Colorize!")
                 
-                colorized_online_video = gr.Video(label="Colorized Video")
-
-                # gr.Interface(
-                #     colorize_online_video,
-                #     inputs=gr.Video(label="Black and White Video"),
-                #     outputs=gr.Video(label="Colorized Video"),
-                # )
+        #         colorized_online_video = gr.Video(label="Colorized Video")
+    with gr.Row():
+        with gr.Column():
+            youtube_url = gr.Textbox(label="YouTube Video URL")
+            youtube_url_btn = gr.Button(value="Download YouTube Video")
+            online_video = gr.Video(label="Black and White Video")
+            with gr.Row():
+                online_start = gr.Text(label="Start (hh:mm:ss)", value=chosen_start)
+                online_end = gr.Text(label="End (hh:mm:ss)", value=chosen_end)
+            online_video_btn = gr.Button(value="Submit to Colorize!")
+        
+        with gr.Column():
+            gr.File(label="dummy", visible=False)
+            colorized_online_video = gr.Video(label="Colorized Video")
+            gr.File(label="dummy", visible=False)
 
     with gr.Row():
         with gr.Column():
@@ -120,8 +122,12 @@ with app:
                 value=6, 
                 label="FPS of Colorized Video"
             )
-        gr.Textbox(label="dummy", visible=False)
 
+        # gr.Examples(
+        #     [["examples/" + example] for example in os.listdir("examples") if ".mp4" in example],
+        #     inputs=[online_video, ],
+        #     outputs=colorized_online_video
+        # )
     # button and dropdown functions
 
     model_dropdown.change(choose_model, inputs=model_dropdown)
@@ -129,17 +135,22 @@ with app:
     fps_dropdown.change(choose_fps, inputs=fps_dropdown)
 
     # local_video_btn.click(
-    #     colorize_local_video,
-    #     inputs=local_video,
+    #     colorize_video,
+    #     inputs=[local_video, local_start, local_end],
     #     outputs=colorized_local_video
     # )
 
-    # online_video_btn.click(
-    #     colorize_online_video,
-    #     inputs=online_video,
-    #     outputs=colorized_online_video
-    # )
+    youtube_url_btn.click(
+        download_youtube,
+        inputs=youtube_url,
+        outputs=online_video
+    )
 
-    # examples 
+    online_video_btn.click(
+        colorize_video,
+        inputs=[online_video, online_start, online_end],
+        outputs=colorized_online_video
+    )
+
 
 app.launch()

@@ -8,9 +8,9 @@ from PIL import Image
 
 import os
 from tqdm import tqdm
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
+from moviepy.tools import cvsecs
 import cv2
-from pathlib import Path
 
 from pdb import set_trace
 
@@ -58,16 +58,40 @@ def colorize_img(model, img):
 
     return resized_fake_img
 
-# def inference_model_batch_imgs(model, imgs):
-#     L = get_L(imgs)
-#     fake_imgs = get_predictions(model, L)
-#     resized_fake_imgs = [skimage.transform.resize(fake_img, imgs[0].size[::-1]) for fake_img in fake_imgs]
+def valid_start_end(duration, start, end):
+    if start == '':
+        start = 0
+    if end == '':
+        end = duration
+
+    try:
+        cvsecs(start)
+        cvsecs(end)
+    except:
+        # start, end aren't actual time values.
+        return False
+
+    # make it minimal maximum length
+    if start:
+        start = max(0, cvsecs(start))
+    if end:
+        end = min(duration, cvsecs(end))
     
-#     return resized_fake_imgs
+    # start must be less than end
+    if start >= end:
+        return False
 
-def colorize_vid(model, path_input, fps):
+    return True
 
-    input_video = VideoFileClip(path_input)
+def colorize_vid(model, path_input, fps, start, end):
+
+    original_video = VideoFileClip(path_input)
+
+    #   check start, end are valid
+    if not valid_start_end(original_video.duration, start, end):
+        return
+    
+    input_video = original_video.subclip(start, end)
     
     if type(fps) == int:
         used_fps = fps
@@ -81,12 +105,12 @@ def colorize_vid(model, path_input, fps):
     
     # create tmp path that is same as input path but with '_tmp.[suffix]'
     base_path, suffix = os.path.splitext(path_input)
-    path_tmp = base_path + "_tmp" + suffix
+    path_video_tmp = base_path + "_tmp" + suffix
 
     # create video writer for output
     size = input_video.size
-    out = cv2.VideoWriter(path_tmp, cv2.VideoWriter_fourcc(*'mp4v'), used_fps, size)
-    # out = cv2.VideoWriter(path_tmp, cv2.VideoWriter_fourcc(*'DIVX'), used_fps, size)
+    out = cv2.VideoWriter(path_video_tmp, cv2.VideoWriter_fourcc(*'mp4v'), used_fps, size)
+    # out = cv2.VideoWriter(path_video_tmp, cv2.VideoWriter_fourcc(*'DIVX'), used_fps, size)
 
     for frame in tqdm(frames, total=nframes):
         # get colorized frame
@@ -102,12 +126,17 @@ def colorize_vid(model, path_input, fps):
     # create output path that is same as input path but with '_out.[suffix]'
     path_output = base_path + "_out" + suffix
 
-    output_video = VideoFileClip(path_tmp)
-    input_audio = input_video.audio
+    # for some reason, subclip doesn't save audio. so make tmp audio file
+    path_audio_tmp = base_path + "audio_tmp.mp3"
+    input_video.audio.write_audiofile(path_audio_tmp, logger=None)
+    input_audio = AudioFileClip(path_audio_tmp)
+
+    output_video = VideoFileClip(path_video_tmp)
     output_video = output_video.set_audio(input_audio)
     output_video.write_videofile(path_output, logger=None)
 
-    os.remove(path_tmp)
+    os.remove(path_video_tmp)
+    os.remove(path_audio_tmp)
 
     print("Done.")
     return path_output
