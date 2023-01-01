@@ -1,5 +1,4 @@
 import torch
-import os
 import gradio as gr
 from pytube import YouTube
 
@@ -10,10 +9,14 @@ from dcgan import *
 
 # ================================
 
-# TODO remove when putting on huggingface
-for file in os.listdir():
-    if file.endswith(".mp4"):
-        os.remove(file)
+# EXAMPLE_FPS = "Same as original"
+EXAMPLE_FPS = 12
+examples = [
+    ["examples/1_falcon.mp4", "modelv2", EXAMPLE_FPS],
+    ["examples/2_mughal.mp4", "modelv1", EXAMPLE_FPS],
+    ["examples/3_wizard.mp4", "modelv1", EXAMPLE_FPS],
+    # ["examples/4_elgar.mp4", "modelv2", EXAMPLE_FPS]
+]
 
 model_choices = [
     "modelv2",
@@ -23,33 +26,32 @@ model_choices = [
 loaded_models = {}
 for model_weights in model_choices:
     model = torch.load(model_weights, map_location=torch.device('cpu'))
-    model.eval() # also done in colorizer
+    model.eval()  # also done in colorizer
     loaded_models[model_weights] = model
 
-# will be changed by dropdowns
-chosen_model = model_choices[0]
-chosen_fps = 6
 
-def choose_model(model_dropdown_choice):
-    global chosen_model
-    chosen_model = model_dropdown_choice
-
-def choose_fps(fps_dropdown_choice):
-    global chosen_fps
-    chosen_fps = fps_dropdown_choice
-
-def colorize_video(path_video, start='', end=''):
+def colorize_video(path_video, chosen_model, chosen_fps, start='', end=''):
     if not path_video:
         return
-    return colorize_vid(loaded_models[chosen_model], path_video, chosen_fps, start, end)
+    return colorize_vid(
+        path_video,
+        loaded_models[chosen_model],
+        chosen_fps,
+        start,
+        end
+    )
+
 
 def download_youtube(url):
     try:
         yt = YouTube(url)
-        streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution')
+        streams = yt.streams.filter(
+            progressive=True,
+            file_extension='mp4').order_by('resolution')
         return streams[0].download()
-    except:
+    except BaseException:
         raise Exception("Invalid URL or Video Unavailable")
+
 
 app = gr.Blocks()
 with app:
@@ -67,21 +69,26 @@ with app:
     gr.Markdown("### Step 1: Choose a YouTube video (or upload locally below)")
 
     youtube_url = gr.Textbox(label="YouTube Video URL")
- 
+
     youtube_url_btn = gr.Button(value="Extract YouTube Video")
 
-    with gr.Row().style(equal_height=False):
+    with gr.Row():
+        gr.Markdown("### Step 2: Adjust settings")
+        gr.Markdown("### Step 3: Hit \"Colorize\"")
+    with gr.Row():
+        bw_video = gr.Video(label="Black-and-White Video")
+        colorized_video = gr.Video(label="Colorized Video")
+    with gr.Row():
         with gr.Column():
-            gr.Markdown("### Step 2: Adjust settings")
-
-            bw_video = gr.Video(label="Black-and-White Video")
-
             with gr.Row():
-                start_time = gr.Text(label="Start Time (hh:mm:ss)", value='')
-                end_time = gr.Text(label="End Time (hh:mm:ss)", value='')
-
-            gr.Markdown("Leave times blank to colorize the entire video.")
-
+                start_time = gr.Text(
+                    label="Start Time (hh:mm:ss or blank for original)", value='')
+                end_time = gr.Text(
+                    label="End Time (hh:mm:ss or blank for original)", value='')
+        with gr.Column():
+            bw_video_btn = gr.Button(value="Colorize", variant="primary")
+    with gr.Row():
+        with gr.Column():
             model_dropdown = gr.Dropdown(
                 model_choices,
                 value=model_choices[0],
@@ -89,40 +96,33 @@ with app:
             )
 
             fps_dropdown = gr.Dropdown(
-                [3, 6, 12, 24, 30, "Same as original FPS"],
+                [3, 6, 12, 24, 30, "Same as original"],
                 value=6,
                 label="FPS of Colorized Video"
             )
 
             gr.Markdown(
                 """
-                ### Colorization Notes
+                #### Colorization Notes
                 - Leave start, end times blank to colorize the entire video
                 - To lower colorization time, you can decrease FPS, resolution, or duration
                 - *modelv2* tends to color videos orange and sepia
                 - *modelv1* tends to color videos with a variety of colors
-                - *modelv2* and *modelv1* use the same architecture (modified DCGAN) but differ in results because of randomization in training
+                - *modelv2* and *modelv1* use the same modified DCGAN architecture but differ in results because of randomization in training
+
+                #### More Reading
+                - <a href='https://towardsdatascience.com/colorizing-black-white-images-with-u-net-and-conditional-gan-a-tutorial-81b2df111cd8' target='_blank'>Colorizing black & white images with U-Net and conditional GAN</a>
+                - <a href='https://arxiv.org/abs/1803.05400' target='_blank'>Image Colorization with Generative Adversarial Networks</a>
                 """
             )
-
         with gr.Column():
-            gr.Markdown("### Step 3: Hit \"Colorize\"")
-
-            colorized_video = gr.Video(label="Colorized Video")
-
-            bw_video_btn = gr.Button(value="Colorize", variant="primary")
-
             gr.Examples(
-                [["examples/" + example] for example in os.listdir("examples") if ".mp4" in example],
-                inputs=[bw_video],
+                examples=examples,
+                inputs=[bw_video, model_dropdown, fps_dropdown],
                 outputs=[colorized_video],
                 fn=colorize_video,
                 # cache_examples=True,
             )
-
-    model_dropdown.change(choose_model, inputs=model_dropdown)
-
-    fps_dropdown.change(choose_fps, inputs=fps_dropdown)
 
     youtube_url_btn.click(
         download_youtube,
@@ -132,7 +132,7 @@ with app:
 
     bw_video_btn.click(
         colorize_video,
-        inputs=[bw_video, start_time, end_time],
+        inputs=[bw_video, model_dropdown, fps_dropdown, start_time, end_time],
         outputs=colorized_video
     )
 
