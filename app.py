@@ -10,12 +10,11 @@ from dcgan import *
 # ================================
 
 # EXAMPLE_FPS = "Same as original"
-EXAMPLE_FPS = 12
 examples = [
-    ["examples/1_falcon.mp4", "modelv2", EXAMPLE_FPS],
-    ["examples/2_mughal.mp4", "modelv1", EXAMPLE_FPS],
-    ["examples/3_wizard.mp4", "modelv1", EXAMPLE_FPS],
-    ["examples/4_elgar.mp4", "modelv2", EXAMPLE_FPS]
+    ["examples/1_falcon.mp4", "modelv2", "Same as original"], # 4:21
+    ["examples/2_mughal.mp4", "modelv1", 12], # 4:30
+    ["examples/3_wizard.mp4", "modelv1", 6], # 7 min
+    ["examples/4_elgar.mp4", "modelv2", 6] # 22 min
 ]
 
 model_choices = [
@@ -121,7 +120,7 @@ with app:
                 inputs=[bw_video, model_dropdown, fps_dropdown],
                 outputs=[colorized_video],
                 fn=colorize_video,
-                # cache_examples=True,
+                cache_examples=True,
             )
 
     youtube_url_btn.click(
